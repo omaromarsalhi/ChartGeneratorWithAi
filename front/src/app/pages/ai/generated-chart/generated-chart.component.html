@@ -1,0 +1,25 @@
+<div class="container-fluid">
+
+    <!-- start page title -->
+    <app-page-title title="Apex charts" [breadcrumbItems]="breadCrumbItems"></app-page-title>
+    <!-- end page title -->
+  
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card">
+              <div class="card-body">
+                <h4 class="card-title mb-4">Dashed Line</h4>
+                <apx-chart class="apex-charts" dir="ltr" [series]="dashedLineChart.series" [chart]="dashedLineChart.chart"
+                  [dataLabels]="dashedLineChart.dataLabels" [stroke]="dashedLineChart.stroke"
+                  [colors]="dashedLineChart.colors" [xaxis]="dashedLineChart.xaxis" [grid]="dashedLineChart.grid"
+                  [tooltip]="dashedLineChart.tooltip" [plotOptions]="dashedLineChart.plotOptions"
+                  [fill]="dashedLineChart.fill" [markers]="dashedLineChart.markers" [legend]="dashedLineChart.legend"
+                  [yaxis]="dashedLineChart.yaxis" [tooltip]="dashedLineChart.tooltip"></apx-chart>
+              </div>
+            </div>
+            <!--end card-->
+          </div>
+    </div>
+
+
+  </div> <!-- container-fluid -->
