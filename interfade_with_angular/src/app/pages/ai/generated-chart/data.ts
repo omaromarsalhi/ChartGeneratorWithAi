@@ -5,10 +5,10 @@ const dashedLineChart: ChartType = {
         height: 380,
         type: 'line',
         zoom: {
-            enabled: false
+            enabled: true
         },
         toolbar: {
-            show: false,
+            show: true,
         }
     },
     colors: ['#556ee6', '#f46a6a', '#34c38f'],
@@ -38,7 +38,7 @@ const dashedLineChart: ChartType = {
         align: 'left'
     },
     markers: {
-        size: 0,
+        size: 1,
 
         hover: {
             sizeOffset: 6
