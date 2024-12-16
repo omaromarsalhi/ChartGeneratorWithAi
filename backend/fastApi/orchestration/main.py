@@ -5,6 +5,7 @@ from llama_index.core.memory import ChatMemoryBuffer
 
 
 from MyMistralAI import MyMistralAI
+from fastApi.data_agent.DataAgent import DataAgent
 from fastApi.template_agent.TemplateAgent import TemplateAgent
 
 from workflow import (
@@ -12,17 +13,16 @@ from workflow import (
     ToolRequestEvent,
     ToolApprovedEvent, OrchestratorAgent,
 )
-from utils import FunctionToolWithContext
+
 
 config = configparser.ConfigParser()
-config.read("../config.ini")
+config.read("../../config.ini")
 os.environ["MISTRAL_API_KEY"] = config.get('API', 'mistral_key')
 
 def get_initial_state() -> dict:
     return {
-        "username": None,
-        "password": None,
-        "template_name":None
+        "username": "omar salhi",
+        "password": "qsdfsdf",
     }
 
 
@@ -244,7 +244,7 @@ async def main():
     llm = MyMistralAI()
     memory = ChatMemoryBuffer.from_defaults(llm=llm)
     initial_state = get_initial_state()
-    agent_configs = [TemplateAgent()]
+    agent_configs = [TemplateAgent(),DataAgent()]
     workflow = OrchestratorAgent(timeout=None)
 
     # draw a diagram of the workflow

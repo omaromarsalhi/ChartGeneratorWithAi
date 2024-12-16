@@ -1,135 +1,139 @@
+from llama_cloud import MessageRole
+from llama_index.core.base.llms.types import ChatMessage
+from llama_index.core.workflow import Context
+
+from fastApi.orchestration.workflow import ProgressEvent
+from fastApi.templates.ChartsDescriptions import (
+    lineWithDataChart,
+    basicRadialBarChart,
+    splineAreaChart,
+    donutChart,
+    barChart,
+    lineColumAreaChar,
+    simplePieChart,
+    basicColumChart,
+    dashedLineChart,
+    columnLabelChart
+)
 
 
 async def save_the_chosen_template(ctx: Context, template_name: str) -> str:
     """Adds the template_name to the user state."""
     ctx.write_event_to_stream(ProgressEvent(msg="Recording template_name"))
-    user_state = await ctx.get("user_state")
-    user_state["template_name"] = template_name
-    await ctx.set("user_state", user_state)
-    return (f"template_name {template_name} recorded in user state.")
+    await ctx.set("template_name", template_name)
+
+    chat_history = await ctx.get("chat_history")
+    chat_history = clean_chat_history(chat_history, template_name)
+    await ctx.set("chat_history", chat_history)
+
+    return (f"template_name {template_name} recorded in context.")
 
 
-async def get_template_names_and_description():
+def clean_chat_history(chat_history, template_name) -> list[ChatMessage]:
+    """Removes the get_template_names_and_description tool from the chat history."""
+    for i, message in enumerate(chat_history):
+        if message.role == MessageRole.TOOL and message.additional_kwargs[
+            "name"] == "get_template_names_and_description":
+            message.blocks[0].text = str(get_template_data_by_name(template_name))
+            break
+    return chat_history
+
+
+def get_template_data_by_name(template_name: str):
+    """this function returns the template data by its name"""
+    if template_name == "lineWithDataChart":
+        return {
+            "name": "lineWithDataChart",
+            "description": lineWithDataChart
+        }
+    elif template_name == "basicColumChart":
+        return {
+            "name": "basicColumChart",
+            "description": basicColumChart
+        }
+    elif template_name == "dashedLineChart":
+        return {
+            "name": "dashedLineChart",
+            "description": dashedLineChart
+        }
+    elif template_name == "columnLabelChart":
+        return {
+            "name": "columnLabelChart",
+            "description": columnLabelChart
+        }
+    elif template_name == "barChart":
+        return {
+            "name": "barChart",
+            "description": barChart
+        }
+    elif template_name == "lineColumAreaChar":
+        return {
+            "name": "lineColumAreaChar",
+            "description": lineColumAreaChar
+        }
+    elif template_name == "simplePieChart":
+        return {
+            "name": "simplePieChart",
+            "description": simplePieChart
+        }
+    elif template_name == "splineAreaChart":
+        return {
+            "name": "splineAreaChart",
+            "description": splineAreaChart
+        }
+    elif template_name == "donutChart":
+        return {
+            "name": "donutChart",
+            "description": donutChart
+        }
+    elif template_name == "basicRadialBarChart":
+        return {
+            "name": "basicRadialBarChart",
+            "description": basicRadialBarChart
+        }
+
+
+async def get_template_names_and_description(ctx: Context):
     """this function gives the charts types with their description and names"""
     return [
         {
             "name": "lineWithDataChart",
-            "description": """
-                This chart is a line chart designed to display trends over time with precision and simplicity. 
-                It features a straight-line stroke style, dual color-coded series for clear comparison, 
-                and labeled data points for enhanced readability. 
-                The x-axis represents categories (e.g., time or months), 
-                while the y-axis measures quantitative values within a defined range.
-                The chart avoids zooming and toolbars to maintain a static and focused visualization, 
-                with responsive adjustments for smaller screens. 
-                It’s ideal for showing continuous data trends or comparisons between two datasets across a 
-                shared dimension.
-            """
+            "description": lineWithDataChart
         },
         {
             "name": "basicColumChart",
-            "description": """
-                This chart is a vertical bar chart designed to compare multiple datasets across categorical 
-                dimensions. It features rounded bar endings, a moderate column width for balanced spacing,
-                and vibrant color distinctions for each dataset. The x-axis displays categories, 
-                while the y-axis represents quantitative values with a focus on financial metrics 
-                (e.g., amounts in thousands). The chart avoids data labels for simplicity 
-                but uses strokes to define bar edges clearly. Its design emphasizes comparison and proportional 
-                representation, making it suitable for visualizing grouped or stacked data like performance
-                metrics or revenue distributions.
-            """
+            "description": basicColumChart
         },
         {
             "name": "dashedLineChart",
-            "description": """
-                This chart is a line chart with dashed line styling, designed to depict trends over 
-                time with multiple datasets. It employs straight-line strokes with varying widths and
-                dash patterns to visually differentiate series. The x-axis represents sequential 
-                categories (e.g., dates), while the y-axis showcases quantitative metrics. 
-                Markers are disabled for a cleaner look but enlarge on hover for interactivity.
-                Its design is tailored for comparing distinct yet related datasets,
-                making it suitable for time-series analysis where visibility of individual
-                trends and their relative behaviors is critical.
-            """
+            "description": dashedLineChart
         },
         {
             "name": "columnLabelChart",
-            "description": """
-                This chart is a vertical bar chart designed to represent a single dataset with 
-                labeled data points displayed directly above the bars for clarity. 
-                It features a gradient fill for visual enhancement and uses top-aligned x-axis
-                labels for a compact and modern layout. The y-axis labels are hidden,
-                simplifying the design while retaining percentage-based values for context
-                through tooltips and data labels. This format is ideal for displaying
-                categorized data with precise values, emphasizing clarity and a clean presentation,
-                such as monthly trends or performance metrics.
-            """
+            "description": columnLabelChart
         },
         {
             "name": "barChart",
-            "description": """
-                This chart is a horizontal bar chart, showcasing a single dataset where each 
-                bar represents a specific category. The bars extend horizontally, making it ideal
-                for comparing values across categories with long labels, such as country names. 
-                The x-axis indicates the values, while the y-axis lists the categories, 
-                ensuring readability for text-heavy data. This format is particularly suited for
-                ranking or distribution comparisons, such as population sizes, sales figures,
-                or other measurable metrics across distinct groups. The clean design with no data
-                labels enhances its simplicity and focus on the comparative aspect.
-            """
+            "description": barChart
         },
         {
             "name": "lineColumAreaChar",
-            "description": """
-                This chart combines multiple visualization types—line, column, and area—in a single
-                representation to provide a comprehensive overview of distinct data series over a
-                shared time-based x-axis. It is particularly well-suited for comparing trends,
-                distributions, and specific points of interest across datasets with varying visual
-                characteristics. By employing smooth curves, dynamic gradients, and precise styling
-                for each type of series, it effectively balances clarity and detail, making it ideal
-                for multi-faceted data analysis.
-            """
+            "description": lineColumAreaChar
         },
         {
             "name": "simplePieChart",
-            "description": """
-                This chart provides a proportional representation of categorical data as segments
-                of a pie, highlighting the relative contribution of each category to the whole.
-                Its clean and simple layout, combined with customizable colors and a responsive
-                design, makes it ideal for presenting data distributions in an intuitive and
-                visually appealing manner. It emphasizes clarity and is suitable for quick
-                comparisons of parts-to-whole relationships.
-            """
+            "description": simplePieChart
         },
         {
             "name": "splineAreaChart",
-            "description": """
-                This chart visualizes data trends over time using smooth, flowing area curves that emphasize
-                changes in values while maintaining a focus on the cumulative impact of the data. The use of
-                smooth strokes and clean axes ensures a visually appealing representation, ideal for
-                showcasing patterns, fluctuations, or progressions in continuous datasets with a
-                time-based dimension.
-            """
+            "description": splineAreaChart
         },
         {
             "name": "donutChart",
-            "description": """
-                This chart model is a circular visualization designed to represent proportions as distinct
-                segments of a whole, emphasizing a comparative distribution between categories.
-                It includes a centered legend with a dynamic layout that adapts to smaller screens
-                by reducing height and hiding the legend. The segments are color-coded for clear
-                differentiation, and the layout ensures readability and accessibility on various devices.
-            """
+            "description": donutChart
         },
         {
             "name": "basicRadialBarChart",
-            "description": """
-                This chart model is a radial bar visualization used to depict progress or performance
-                metrics in a circular format, where each bar extends radially from the center.
-                It features customizable data labels for category names, values, and an optional
-                total summary displayed at the center. The design emphasizes clarity with distinct
-                colors for each segment and a layout optimized for presenting proportional values
-                or cumulative metrics in a visually engaging way.
-            """
+            "description": basicRadialBarChart
         }
     ]

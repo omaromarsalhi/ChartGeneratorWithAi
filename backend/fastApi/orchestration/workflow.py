@@ -24,11 +24,11 @@ from llama_index.core.workflow import (
 from llama_index.core.workflow.events import InputRequiredEvent, HumanResponseEvent
 
 from fastApi.orchestration.MyMistralAI import MyMistralAI
-from utils import FunctionToolWithContext
+from fastApi.orchestration.utils import FunctionToolWithContext
 
 
 config = configparser.ConfigParser()
-config.read("../config.ini")
+config.read("../../config.ini")
 os.environ["MISTRAL_API_KEY"] = config.get('API', 'mistral_key')
 
 
@@ -191,7 +191,7 @@ class OrchestratorAgent(Workflow):
 
         # inject the request transfer tool into the list of tools
         tools = [get_function_tool(RequestTransfer)] + agent_config.tools
-
+        print("llm_input: ", str(llm_input))
         await asyncio.sleep(2)
         response = await llm.achat_with_tools(tools, chat_history=llm_input)
 

@@ -7,7 +7,6 @@ from llama_index.llms.gemini import Gemini
 from sqlalchemy import create_engine, inspect
 from sql_db_search.Nl2SqlPrompts import custom_prompt, response_prompt
 
-
 class Config:
     """Handles loading and accessing configuration from an INI file."""
     def __init__(self, config_file='config.ini'):
@@ -17,6 +16,7 @@ class Config:
     def get(self, section, key):
         """Retrieve the configuration value for a given section and key."""
         return self.config.get(section, key)
+
 
 
 class Database:
