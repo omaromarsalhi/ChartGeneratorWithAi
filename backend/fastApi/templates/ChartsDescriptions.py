@@ -1,4 +1,7 @@
-linewithDataChart = """
+
+
+
+lineWithDataChart = """
      This chart is a line chart designed to display trends over time with precision and simplicity. 
      It features a straight-line stroke style, dual color-coded series for clear comparison, 
      and labeled data points for enhanced readability. 
@@ -32,7 +35,7 @@ dashedLineChart = """
   trends and their relative behaviors is critical.
 """
 
-columnlabelChart = """
+columnLabelChart = """
   This chart is a vertical bar chart designed to represent a single dataset with 
   labeled data points displayed directly above the bars for clarity. 
   It features a gradient fill for visual enhancement and uses top-aligned x-axis
