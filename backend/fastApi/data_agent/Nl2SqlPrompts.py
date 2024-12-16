@@ -7,6 +7,7 @@ combined_prompt = (
     "Only execute the query and return the result, no explanations or descriptions. "
     "You must return only the result of the query, no other information. "
     "You are not allowed to explain or describe the SQL query itself.\n\n"
+    "do not make any reduction to the result of the query. always return the full result of the query."
     
     "You can order the results by a relevant column to return the most interesting examples in the database. "
     "Never query for all the columns from a specific table; only ask for the relevant columns given the question.\n\n"
@@ -15,8 +16,10 @@ combined_prompt = (
     "Only use the given tools to interact with the database. "
     "You MUST double-check your query before executing it. If you get an error while executing a query, rewrite the query and try again.\n\n"
 
-    "Here is the chart example and name and the user input for this task:\n"
-    "user input: {query_str}\n"
+    "Here is the chart example and the question in the same string for this task:\n"
+
+    "{schema}\n\n"
+    "Question: {query_str}\n"
     "SQLQuery: "
 )
 
@@ -27,17 +30,22 @@ custom_prompt = PromptTemplate(
 )
 
 
-
 response_prompt = (
-    "Given an input question, synthesize a response from the query results.\n"
+    "Given an input question and a chart example, synthesize a response from the query results and format the data "
+    "according to the chart structure provided.\n"
     "Query: {query_str}\n"
     "SQL: {sql_query}\n"
-    "SQL Response: {context_str}\n"
-    "Response: "
-    "If the question does not relate to the database, return 'This question is not related to the database'.\n\n"
+    "SQL Response: {context_str}\n\n"
     "If the SQL query involves restricted operations (like DELETE, INSERT, UPDATE, or DROP), "
-    "respond with 'Sorry, this operation is not allowed'. Otherwise, provide the result of the query."
+    "respond with 'Sorry, this operation is not allowed'. Otherwise, provide the result of the query in the "
+    "following format based on the chart example:\n\n"
+    "{chart_example}\n\n"
+    "Response: "
 )
+
+
+
+
 
 
 response_prompt = PromptTemplate(

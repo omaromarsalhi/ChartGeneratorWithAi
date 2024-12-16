@@ -2,6 +2,7 @@ from llama_index.core.workflow import Context
 from fastApi.data_agent.Config import Config
 from fastApi.data_agent.Database import Database
 from fastApi.data_agent.Nl2SqlEngine import Nl2SqlEngine
+from fastApi.data_agent.Nl2SqlPrompts import combined_prompt
 from fastApi.orchestration.workflow import ProgressEvent
 from sqlalchemy.exc import OperationalError
 
@@ -25,8 +26,9 @@ async def check_connection(ctx: Context):
 
 
 async def connect_to_db(ctx: Context) -> str:
+    """Connect to the database and save the connection in the context."""
     config = Config("../../config.ini")
-    ctx.write_event_to_stream(ProgressEvent(msg="Recording template_name"))
+    ctx.write_event_to_stream(ProgressEvent(msg="connecting to the database..."))
     database = Database(config)
     await ctx.set("config", config)
     await ctx.set("database", database)
@@ -47,15 +49,14 @@ async def get_data_from_db(ctx: Context, user_query: str):
     template_name = await ctx.get("template_name")
     query_message = create_query_message(user_query, template_name)
     nl2sql_engine = await ctx.get("nl2sql_engine")
+    print("query_message",query_message)
     return nl2sql_engine.query(query_message)
 
 
 def create_query_message(user_input: str, chart_name: str) -> str:
     return (
         f"User input: {user_input}\n"
-        f"Chosen chart: {chart_name}\n"
         f"Chart example: {get_template_example_data_by_name(chart_name)}\n\n"
-        "Generate an SQL query that retrieves data fitting this chart model."
     )
 
 

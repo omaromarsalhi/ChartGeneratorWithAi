@@ -19,7 +19,7 @@ class TemplateAgent(AgentConfig):
             of the chosen chart template for future use. At this step,
             you will not ask the user to choose a chart; your selection
             will be made automatically based on the given context.
-            then pass the job to another agent to generate the chart with the data from the database.
+            then pass the job to another agent to the data agent to generate the chart with the data from the database by RequestTransfer function.
         """
         tools = [
             FunctionToolWithContext.from_defaults(
@@ -30,10 +30,8 @@ class TemplateAgent(AgentConfig):
                 description="save the chosen template",
             )
         ]
-        tools_requiring_human_confirmation = ['save_the_chosen_template']
         super().__init__(name=name,
                          description=description,
                          system_prompt=system_prompt,
-                         tools=tools,
-                         tools_requiring_human_confirmation=tools_requiring_human_confirmation)
+                         tools=tools)
 

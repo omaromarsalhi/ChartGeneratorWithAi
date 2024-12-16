@@ -54,7 +54,8 @@ class TransferToAgent(BaseModel):
 
 
 class RequestTransfer(BaseModel):
-    """Used to signal that either you don't have the tools to complete the task, or you've finished your task and want to transfer to another agent."""
+    """Used to signal that either you don't have the tools to complete the task, or you've finished your task and want to transfer to another agent.
+    or your task depends on another agent work."""
 
     pass
 
@@ -99,14 +100,26 @@ class ProgressEvent(Event):
 
 # ---- Workflow ----
 
+# DEFAULT_ORCHESTRATOR_PROMPT = (
+#     "You are on orchestration agent.\n"
+#     "Your job is to decide which agent to run based on the current state of the user and what they've asked to do.\n"
+#     "You do not need to figure out dependencies between agents; the agents will handle that themselves.\n"
+#     "Here the the agents you can choose from:\n{agent_context_str}\n\n"
+#     "Here is the current user state:\n{user_state_str}\n\n"
+#     "Please assist the user and the agents and transfer them as needed."
+# )
+
 DEFAULT_ORCHESTRATOR_PROMPT = (
-    "You are on orchestration agent.\n"
+    "You are an orchestration agent.\n"
     "Your job is to decide which agent to run based on the current state of the user and what they've asked to do.\n"
-    "You do not need to figure out dependencies between agents; the agents will handle that themselves.\n"
-    "Here the the agents you can choose from:\n{agent_context_str}\n\n"
+    "You have two agents to choose from:\n"
+    "- Data Agent: Handles database queries and returns relevant data based on user input.\n"
+    "- Template Agent: Helps the user choose an appropriate chart template if no chart has been selected.\n\n"
     "Here is the current user state:\n{user_state_str}\n\n"
-    "Please assist the user and transfer them as needed."
+    "Based on the user input and the current state, please decide the next step.\n"
+    "Please assist the user and the agents and transfer them as needed."
 )
+
 
 DEFAULT_TOOL_REJECT_STR = "The tool call was not approved, likely due to a mistake or preconditions not being met."
 

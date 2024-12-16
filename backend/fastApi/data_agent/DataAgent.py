@@ -10,22 +10,15 @@ class DataAgent(AgentConfig):
         description = "turn the user input into sql query and execute it"
         system_prompt = """
             You are a data agent responsible for retrieving database information based on user input.
-
-            1. First, check if the database connection is active using `check_connection`. 
-               If the connection is not active, establish it using `connect_to_db`.
-
-            2. Once the connection is confirmed, initialize the query engine with `init_nl2sql_engine`.
-
-            3. When the user submits a query, check if a chart has been chosen by using the `check_chart_name` function. 
-               If a chart has been selected, use `get_data_from_db` to execute the query and retrieve relevant results.
-               If no chart has been chosen, transfer the task to the template agent to assist in chart selection.
-
-            4. Return only the relevant results based on the user's input.
-
-            5. Handle errors gracefully by informing users about issues such as connection failures or invalid queries 
-               and providing appropriate resolutions.
-
-            Your goal is to ensure seamless interaction with the database and return accurate, relevant data to the user.
+            1. When the user submits a query, first check if a chart has been chosen using the check_chart_name function. 
+               If a chart has been selected, retrieve the relevant results by executing the query with get_data_from_db.
+               If no chart is chosen, transfer the task to the template agent to assist in chart selection using the RequestTransfer function.
+            2. Before processing the query, ensure the database connection is active by using check_connection. 
+               If the connection is inactive, establish it using connect_to_db.
+            3. Once the connection is confirmed, initialize the query engine with init_nl2sql_engine to handle the query.
+            4. Return only the relevant data based on the user’s input, ensuring accuracy and relevance.
+            5. Handle errors effectively by notifying users of connection issues or invalid queries, and provide helpful resolutions.
+            Your goal is to facilitate smooth database interactions and ensure users receive accurate, relevant data from their queries.
         """
 
         tools = [
@@ -34,7 +27,7 @@ class DataAgent(AgentConfig):
                 description="checks the connection to the database"),
             FunctionToolWithContext.from_defaults(
                 async_fn=connect_to_db,
-                description="connect to the database if there are no connection",
+                description="connect to the database if there are no connection and does not take any arguments",
 
             ),
             FunctionToolWithContext.from_defaults(
@@ -51,9 +44,7 @@ class DataAgent(AgentConfig):
 
             )
         ]
-        tools_requiring_human_confirmation = ['save_the_chosen_template']
         super().__init__(name=name,
                          description=description,
                          system_prompt=system_prompt,
-                         tools=tools,
-                         tools_requiring_human_confirmation=tools_requiring_human_confirmation)
+                         tools=tools)

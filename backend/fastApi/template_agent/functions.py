@@ -35,7 +35,6 @@ def clean_chat_history(chat_history, template_name) -> list[ChatMessage]:
         if message.role == MessageRole.TOOL and message.additional_kwargs[
             "name"] == "get_template_names_and_description":
             message.blocks[0].text = str(get_template_data_by_name(template_name))
-            break
     return chat_history
 
 
