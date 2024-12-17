@@ -49,8 +49,9 @@ async def get_data_from_db(ctx: Context, user_query: str):
     template_name = await ctx.get("template_name")
     query_message = create_query_message(user_query, template_name)
     nl2sql_engine = await ctx.get("nl2sql_engine")
-    print("query_message",query_message)
-    return nl2sql_engine.query(query_message)
+    query_result = nl2sql_engine.query(query_message)
+    await ctx.set("query_result", query_result)
+    return f"Data retrieved from the database {query_result}."
 
 
 def create_query_message(user_input: str, chart_name: str) -> str:

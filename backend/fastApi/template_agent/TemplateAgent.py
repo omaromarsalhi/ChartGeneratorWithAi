@@ -1,6 +1,7 @@
 from fastApi.orchestration.utils import FunctionToolWithContext
 from fastApi.orchestration.workflow import AgentConfig
-from fastApi.template_agent.functions import get_template_names_and_description, save_the_chosen_template
+from fastApi.template_agent.functions import get_template_names_and_description, save_the_chosen_template, \
+    format_the_data_according_to_chart
 
 
 class TemplateAgent(AgentConfig):
@@ -8,19 +9,24 @@ class TemplateAgent(AgentConfig):
         name = "Template Agent"
         description = "chooses the appropriate template of a chart"
         system_prompt = """
-            You are a data visualization assistant. Given the user's
-            input, your task is to automatically choose the most appropriate
-            chart from a list of available options. Each chart has a name and
-            a description, which you can retrieve using the
-            get_template_names_and_description function. Select the chart that
-            best fits the user's needs based on their situation and the chart
-            descriptions. Once you’ve made your selection, 
-            use the save_the_chosen_template function to save the name
-            of the chosen chart template for future use. At this step,
-            you will not ask the user to choose a chart; your selection
-            will be made automatically based on the given context.
-            then pass the job to another agent to the data agent to generate the chart with the data from the database by RequestTransfer function.
+            1. Retrieve Chart Options:
+               Use the get_template_names_and_description function to fetch available chart templates and descriptions.
+            2. Select the Best Chart:
+               Analyze the user's input and automatically select the most appropriate chart based on the context and the available templates.
+                This eliminates the need for user input on the chart type.
+            3. Save the Selected Chart:
+               Use save_the_chosen_template to store the selected chart template for future use.
+            4. Transfer Task to Data Agent:
+               Use RequestTransfer to send the task to the data agent for data retrieval and storage.
+            5. Format the Data:
+               After the data agent successfully retrieves and stores the data, 
+               use format_the_data_according_to_chart to structure the data to fit the selected chart.
+            Key Goals:
+            - Efficiency: Automate chart selection and data formatting to minimize user intervention.
+            - Accuracy: Ensure the selected chart fits the user's needs based on their input.
+            - Streamlining: Automatically save and format data for smooth task handover to the data agent.
         """
+
         tools = [
             FunctionToolWithContext.from_defaults(
                 async_fn=get_template_names_and_description,
@@ -28,6 +34,10 @@ class TemplateAgent(AgentConfig):
             FunctionToolWithContext.from_defaults(
                 async_fn=save_the_chosen_template,
                 description="save the chosen template",
+            ),
+            FunctionToolWithContext.from_defaults(
+                async_fn=format_the_data_according_to_chart,
+                description="format the data according to the chosen chart",
             )
         ]
         super().__init__(name=name,

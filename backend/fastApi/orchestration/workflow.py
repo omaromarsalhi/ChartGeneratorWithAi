@@ -100,25 +100,25 @@ class ProgressEvent(Event):
 
 # ---- Workflow ----
 
-# DEFAULT_ORCHESTRATOR_PROMPT = (
-#     "You are on orchestration agent.\n"
-#     "Your job is to decide which agent to run based on the current state of the user and what they've asked to do.\n"
-#     "You do not need to figure out dependencies between agents; the agents will handle that themselves.\n"
-#     "Here the the agents you can choose from:\n{agent_context_str}\n\n"
-#     "Here is the current user state:\n{user_state_str}\n\n"
-#     "Please assist the user and the agents and transfer them as needed."
-# )
-
 DEFAULT_ORCHESTRATOR_PROMPT = (
-    "You are an orchestration agent.\n"
+    "You are on orchestration agent.\n"
     "Your job is to decide which agent to run based on the current state of the user and what they've asked to do.\n"
-    "You have two agents to choose from:\n"
-    "- Data Agent: Handles database queries and returns relevant data based on user input.\n"
-    "- Template Agent: Helps the user choose an appropriate chart template if no chart has been selected.\n\n"
+    "You do not need to figure out dependencies between agents; the agents will handle that themselves.\n"
+    "Here the the agents you can choose from:\n{agent_context_str}\n\n"
     "Here is the current user state:\n{user_state_str}\n\n"
-    "Based on the user input and the current state, please decide the next step.\n"
     "Please assist the user and the agents and transfer them as needed."
 )
+
+# DEFAULT_ORCHESTRATOR_PROMPT = (
+#     "You are an orchestration agent.\n"
+#     "Your job is to decide which agent to run based on the current state of the user and what they've asked to do.\n"
+#     "You have two agents to choose from:\n"
+#     "- Data Agent: Handles database queries and returns relevant data based on user input.\n"
+#     "- Template Agent: Helps the user choose an appropriate chart template if no chart has been selected and format the data retrieved by te Data agent.\n\n"
+#     "Here is the current user state:\n{user_state_str}\n\n"
+#     "Based on the user input and the current state, please decide the next step.\n"
+#     "Please assist the user and the agents and transfer them as needed."
+# )
 
 
 DEFAULT_TOOL_REJECT_STR = "The tool call was not approved, likely due to a mistake or preconditions not being met."

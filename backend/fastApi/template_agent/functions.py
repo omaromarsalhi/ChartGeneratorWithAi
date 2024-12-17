@@ -1,8 +1,11 @@
 from llama_cloud import MessageRole
 from llama_index.core.base.llms.types import ChatMessage
 from llama_index.core.workflow import Context
+from llama_index.llms.gemini import Gemini
 
+from fastApi.data_agent.functions import get_template_example_data_by_name
 from fastApi.orchestration.workflow import ProgressEvent
+from fastApi.template_agent.prompt import formating_prompt
 from fastApi.templates.ChartsDescriptions import (
     lineWithDataChart,
     basicRadialBarChart,
@@ -15,6 +18,25 @@ from fastApi.templates.ChartsDescriptions import (
     dashedLineChart,
     columnLabelChart
 )
+
+
+async def format_the_data_according_to_chart(ctx: Context) -> str:
+    """Formats the data according to the chart."""
+    query_result = await ctx.get("query_result")
+    template_name = await ctx.get("template_name")
+    if query_result is None:
+        return "No data found."
+    else:
+        config = await ctx.get("config")
+        llm = Gemini(api_key=config.get('API', 'gemini_key'))
+        formated_prompt = formating_prompt.format(
+            dataset=query_result,
+            chart_example=get_template_example_data_by_name(template_name)
+        )
+        formatted_data = llm.complete(formated_prompt)
+        return f"Data formatted according to the chart and stored in the context.\n\n{formatted_data}"
+
+
 
 
 async def save_the_chosen_template(ctx: Context, template_name: str) -> str:

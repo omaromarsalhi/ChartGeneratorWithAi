@@ -6,11 +6,6 @@ from fastApi.data_agent.Config import Config
 class Database:
     """Handles database connections and setup."""
     def __init__(self, config: Config):
-        print(config.get('DATABASE', 'host'))
-        print(config.get('DATABASE', 'user'))
-        print(config.get('DATABASE', 'password'))
-        print(config.get('DATABASE', 'port'))
-        print(config.get('DATABASE', 'db_name'))
         self.db_host = config.get('DATABASE', 'host')
         self.db_user = config.get('DATABASE', 'user')
         self.db_password = config.get('DATABASE', 'password')
