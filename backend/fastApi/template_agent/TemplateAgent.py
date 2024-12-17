@@ -6,7 +6,7 @@ from fastApi.template_agent.functions import get_template_names_and_description,
 class TemplateAgent(AgentConfig):
     def __init__(self):
         name = "Template Agent"
-        description = "chooses the appropriate template of a chart"
+        description = "chooses the appropriate template of a chart if the is no chart selected"
         system_prompt = """
             1. Retrieve Chart Options:
                Use the get_template_names_and_description function to fetch available chart templates and descriptions.
@@ -15,7 +15,7 @@ class TemplateAgent(AgentConfig):
                 This eliminates the need for user input on the chart type.
             3. Save the Selected Chart:
                Use save_the_chosen_template to store the selected chart template for future use.
-            4. When you finish transfer the job the data agent
+            4. When you finish transfer the job the `Data Agent`
         """
         tools = [
             FunctionToolWithContext.from_defaults(async_fn=get_template_names_and_description),

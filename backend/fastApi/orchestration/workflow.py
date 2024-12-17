@@ -26,7 +26,6 @@ from llama_index.core.workflow.events import InputRequiredEvent, HumanResponseEv
 from fastApi.orchestration.MyMistralAI import MyMistralAI
 from fastApi.orchestration.utils import FunctionToolWithContext
 
-
 config = configparser.ConfigParser()
 config.read("../../config.ini")
 os.environ["MISTRAL_API_KEY"] = config.get('API', 'mistral_key')
@@ -40,7 +39,7 @@ class AgentConfig(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    name: str
+    name: str | None = None
     description: str
     system_prompt: str | None = None
     tools: list[BaseTool] | None = None
@@ -49,15 +48,12 @@ class AgentConfig(BaseModel):
 
 class TransferToAgent(BaseModel):
     """Used to transfer the user to a specific agent."""
-
     agent_name: str
 
 
 class RequestTransfer(BaseModel):
-    """Used to signal that either you don't have the tools to complete the task, or you've finished your task and want to transfer to another agent.
-    or your task depends on another agent work."""
-
-    pass
+    """Used to signal that either you don't have the tools to complete the task, or you've finished your task and want to transfer to another agent."""
+    agent_name: str
 
 
 # ---- Events used to orchestrate the workflow ----
@@ -68,7 +64,7 @@ class ActiveSpeakerEvent(Event):
 
 
 class OrchestratorEvent(Event):
-    pass
+    agent_name: str | None = None
 
 
 class ToolCallEvent(Event):
@@ -100,49 +96,78 @@ class ProgressEvent(Event):
 
 # ---- Workflow ----
 
-DEFAULT_ORCHESTRATOR_PROMPT = (
-    "You are on orchestration agent.\n"
-    "Your job is to decide which agent to run based on the current state of the user and what they've asked to do.\n"
-    "You do not need to figure out dependencies between agents; the agents will handle that themselves.\n"
-    "Here the the agents you can choose from:\n{agent_context_str}\n\n"
-    "Here is the current user state:\n{user_state_str}\n\n"
-    "Please assist the user and the agents and transfer them as needed."
-    "Error Handling: Notify users promptly of any issues, such as connection errors or invalid queries, and provide helpful resolutions."
-)
+# DEFAULT_ORCHESTRATOR_PROMPT = (
+#     "You are on orchestration agent.\n"
+#     "Your job is to decide which agent to run based on the current state of the user and what they've asked to do.\n"
+#     "You do not need to figure out dependencies between agents; the agents will handle that themselves.\n"
+#     "Always start with the Template Agent"
+#     "Here the the agents you can choose from:\n{agent_context_str}\n\n"
+#     "Here is the current user state:\n{user_state_str}\n\n"
+#     "Do not transfer any agent to itself"
+#     "Please assist the user and the agents and transfer them as needed."
+#     "Error Handling: Notify users promptly of any issues, such as connection errors or invalid queries, and provide helpful resolutions."
+# )
 
 # DEFAULT_ORCHESTRATOR_PROMPT = (
 #     "You are an orchestration agent.\n"
 #     "Your job is to decide which agent to run based on the current state of the user and what they've asked to do.\n"
 #     "You have two agents to choose from:\n"
-#     "- Data Agent: Handles database queries and returns relevant data based on user input.\n"
-#     "- Template Agent: Helps the user choose an appropriate chart template if no chart has been selected and format the data retrieved by te Data agent.\n\n"
+#     "Here the agents you can choose from:\n{agent_context_str}\n\n"
 #     "Here is the current user state:\n{user_state_str}\n\n"
+#     "Here is the current working agent:\n{current_agent}\n\n"
+#     "If the other agent request a specific agent to handle the task, you should transfer the task to that agent and this is his name {agent_name}"
+#     " and if none or the name provided does not exist then do chose by yourself .\n"
+#     "Do not transfer any agent to itself"
 #     "Based on the user input and the current state, please decide the next step.\n"
 #     "Please assist the user and the agents and transfer them as needed."
 # )
 
+DEFAULT_ORCHESTRATOR_PROMPT = (
+    "You are an orchestration agent responsible for **managing and directing tasks exclusively between agents**.\n\n"
+    "### Your Sole Responsibility:\n"
+    "1. **Agent Selection**: Your task is **only to choose the most appropriate agent** to handle the user's request, based on the current state.\n"
+    "2. **Task Delegation**: **Only transfer tasks to the appropriate agent.** Do not perform any other action or process beyond this.\n"
+    "3. **Avoid Loops**: Ensure that no task is transferred in a circular or redundant way between agents.\n\n"
+    "### Available Agents:\n"
+    "{agent_context_str}\n\n"
+    "### Current State:\n"
+    "- **User State**: {user_state_str}\n"
+    "- **Current Working Agent**: {current_agent}\n\n"
+    "### Agent Transfer Logic:\n"
+    "1. If an agent is explicitly requested by another agent, **only transfer the task to that agent**, as long as the name is valid ({agent_name}).\n"
+    "2. If no agent is explicitly requested or the provided name does not exist, **choose the most suitable agent** based on the current context.\n"
+    "3. Do not perform any other actions, **your role is limited to choosing between agents**.\n"
+    "4. Never transfer a task back to the **current agent**.\n\n"
+    "### Instructions:\n"
+    "1. Analyze the user’s request and the current state to determine the best agent for the task.\n"
+    "2. If no suitable agent can handle the request, do **nothing but indicate to the user that further clarification is needed**.\n"
+    "3. **Do not perform any actions other than transferring the task to the appropriate agent**.\n\n"
+    "### Critical Rules:\n"
+    "- **Your job is to choose only between agents**. **Do not take any other action.**\n"
+    "- **Do not transfer tasks back to the current working agent**.\n"
+    "- Provide the **appropriate agent selection decision** without performing any other tasks.\n\n"
+    "Based on the above, decide which agent is best suited to handle the task or ask for further clarification from the user if necessary."
+)
 
 DEFAULT_TOOL_REJECT_STR = "The tool call was not approved, likely due to a mistake or preconditions not being met."
 
 
-
-
 class OrchestratorAgent(Workflow):
     def __init__(
-        self,
-        orchestrator_prompt: str | None = None,
-        default_tool_reject_str: str | None = None,
-        **kwargs: Any,
+            self,
+            orchestrator_prompt: str | None = None,
+            default_tool_reject_str: str | None = None,
+            **kwargs: Any,
     ):
         super().__init__(**kwargs)
         self.orchestrator_prompt = orchestrator_prompt or DEFAULT_ORCHESTRATOR_PROMPT
         self.default_tool_reject_str = (
-            default_tool_reject_str or DEFAULT_TOOL_REJECT_STR
+                default_tool_reject_str or DEFAULT_TOOL_REJECT_STR
         )
 
     @step
     async def setup(
-        self, ctx: Context, ev: StartEvent
+            self, ctx: Context, ev: StartEvent
     ) -> ActiveSpeakerEvent | OrchestratorEvent:
         """Sets up the workflow, validates inputs, and stores them in the context."""
         active_speaker = await ctx.get("active_speaker", default="")
@@ -153,10 +178,10 @@ class OrchestratorAgent(Workflow):
         chat_history = ev.get("chat_history", default=[])
         initial_state = ev.get("initial_state", default={})
         if (
-            user_msg is None
-            or agent_configs is None
-            or llm is None
-            or chat_history is None
+                user_msg is None
+                or agent_configs is None
+                or llm is None
+                or chat_history is None
         ):
             raise ValueError(
                 "User message, agent configs, llm, and chat_history are required!"
@@ -184,7 +209,7 @@ class OrchestratorAgent(Workflow):
 
     @step
     async def speak_with_sub_agent(
-        self, ctx: Context, ev: ActiveSpeakerEvent
+            self, ctx: Context, ev: ActiveSpeakerEvent
     ) -> ToolCallEvent | ToolRequestEvent | StopEvent:
         """Speaks with the active sub-agent and handles tool calls (if any)."""
 
@@ -197,24 +222,23 @@ class OrchestratorAgent(Workflow):
         user_state = await ctx.get("user_state")
         user_state_str = "\n".join([f"{k}: {v}" for k, v in user_state.items()])
         system_prompt = (
-            agent_config.system_prompt.strip()
-            + f"\n\nHere is the current user state:\n{user_state_str}"
+                agent_config.system_prompt.strip()
+                + f"\n\nHere is the current user state:\n{user_state_str}"
         )
 
         llm_input = [ChatMessage(role=MessageRole.SYSTEM, content=system_prompt)] + chat_history
 
         # inject the request transfer tool into the list of tools
         tools = [get_function_tool(RequestTransfer)] + agent_config.tools
-        print("llm_input: ", str(llm_input))
         await asyncio.sleep(2)
         response = await llm.achat_with_tools(tools, chat_history=llm_input)
 
         tool_calls: list[ToolSelection] = llm.get_tool_calls_from_response(
             response, error_on_no_tool_call=False
         )
+        print("number of tools: ",len(tool_calls))
         for tool_call in tool_calls:
-            print(tool_call)
-
+            print("chosen tool by th agent",tool_call)
 
         if len(tool_calls) == 0:
             chat_history.append(response.message)
@@ -234,7 +258,7 @@ class OrchestratorAgent(Workflow):
                 ctx.write_event_to_stream(
                     ProgressEvent(msg="Agent is requesting a transfer. Please hold.")
                 )
-                return OrchestratorEvent()
+                return OrchestratorEvent(agent_name=tool_call.tool_kwargs["agent_name"])
 
             elif tool_call.tool_name in agent_config.tools_requiring_human_confirmation:
                 ctx.write_event_to_stream(
@@ -255,7 +279,7 @@ class OrchestratorAgent(Workflow):
 
     @step
     async def handle_tool_approval(
-        self, ctx: Context, ev: ToolApprovedEvent
+            self, ctx: Context, ev: ToolApprovedEvent
     ) -> ToolCallEvent | ToolCallResultEvent:
         """Handles the approval or rejection of a tool call."""
         if ev.approved:
@@ -270,9 +294,9 @@ class OrchestratorAgent(Workflow):
                 ),
             )
         else:
-            new_response =("the user has rejected the tool call and this is his reason : "+ev.response+" ."
-                           "if his reason does not make any sense then take this instead "
-                           +self.default_tool_reject_str)
+            new_response = ("the user has rejected the tool call and this is his reason : " + ev.response + " ."
+                                                                                                            "if his reason does not make any sense then take this instead "
+                            + self.default_tool_reject_str)
             return ToolCallResultEvent(
                 chat_message=ChatMessage(
                     role=MessageRole.TOOL,
@@ -287,7 +311,7 @@ class OrchestratorAgent(Workflow):
 
     @step(num_workers=4)
     async def handle_tool_call(
-        self, ctx: Context, ev: ToolCallEvent
+            self, ctx: Context, ev: ToolCallEvent
     ) -> ActiveSpeakerEvent:
         """Handles the execution of a tool call."""
 
@@ -309,7 +333,6 @@ class OrchestratorAgent(Workflow):
         try:
             if isinstance(tool, FunctionToolWithContext):
                 tool_output = await tool.acall(ctx, **tool_call.tool_kwargs)
-                print("tool_output: ", tool_output)
             else:
                 tool_output = await tool.acall(**tool_call.tool_kwargs)
 
@@ -335,11 +358,12 @@ class OrchestratorAgent(Workflow):
 
     @step
     async def aggregate_tool_results(
-        self, ctx: Context, ev: ToolCallResultEvent
+            self, ctx: Context, ev: ToolCallResultEvent
     ) -> ActiveSpeakerEvent:
         """Collects the results of all tool calls and updates the chat history."""
         num_tool_calls = await ctx.get("num_tool_calls")
         results = ctx.collect_events(ev, [ToolCallResultEvent] * num_tool_calls)
+
         if not results:
             return
 
@@ -352,7 +376,7 @@ class OrchestratorAgent(Workflow):
 
     @step
     async def orchestrator(
-        self, ctx: Context, ev: OrchestratorEvent
+            self, ctx: Context, ev: OrchestratorEvent
     ) -> ActiveSpeakerEvent | StopEvent:
         """Decides which agent to run next, if any."""
         agent_configs = await ctx.get("agent_configs")
@@ -364,9 +388,16 @@ class OrchestratorAgent(Workflow):
 
         user_state = await ctx.get("user_state")
         user_state_str = "\n".join([f"{k}: {v}" for k, v in user_state.items()])
+
+        current_agent_name= await ctx.get("active_agent",default="None")
+        print("current_agent_name: ", current_agent_name)
         system_prompt = self.orchestrator_prompt.format(
-            agent_context_str=agent_context_str, user_state_str=user_state_str
+            agent_context_str=agent_context_str,user_state_str=user_state_str,current_agent=current_agent_name,agent_name=ev.agent_name
         )
+
+        # system_prompt = self.orchestrator_prompt.format(
+        #     agent_context_str=agent_context_str, user_state_str=user_state_str
+        # )
 
         llm_input = [ChatMessage(role="system", content=system_prompt)] + chat_history
         llm = await ctx.get("llm")
@@ -377,13 +408,12 @@ class OrchestratorAgent(Workflow):
         await asyncio.sleep(2)
         response = await llm.achat_with_tools(tools, chat_history=llm_input)
 
-
         tool_calls = llm.get_tool_calls_from_response(
             response, error_on_no_tool_call=False
         )
-
+        print("number of tools of orchestrator: ", len(tool_calls))
         for tool_call in tool_calls:
-            print("from orchestrator",tool_call)
+            print("from orchestrator", tool_call)
         # if no tool calls were made, the orchestrator probably needs more information
         if len(tool_calls) == 0:
             chat_history.append(response.message)
@@ -397,6 +427,7 @@ class OrchestratorAgent(Workflow):
         tool_call = tool_calls[0]
         selected_agent = tool_call.tool_kwargs["agent_name"]
         await ctx.set("active_speaker", selected_agent)
+        await ctx.set("active_agent", selected_agent)
 
         ctx.write_event_to_stream(
             ProgressEvent(msg=f"Transferring to agent {selected_agent}")
