@@ -107,6 +107,7 @@ DEFAULT_ORCHESTRATOR_PROMPT = (
     "Here the the agents you can choose from:\n{agent_context_str}\n\n"
     "Here is the current user state:\n{user_state_str}\n\n"
     "Please assist the user and the agents and transfer them as needed."
+    "Error Handling: Notify users promptly of any issues, such as connection errors or invalid queries, and provide helpful resolutions."
 )
 
 # DEFAULT_ORCHESTRATOR_PROMPT = (

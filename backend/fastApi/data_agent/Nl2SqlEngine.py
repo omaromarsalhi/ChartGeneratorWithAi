@@ -6,7 +6,7 @@ from llama_index.llms.gemini import Gemini
 
 from fastApi.data_agent.Config import Config
 from fastApi.data_agent.Database import Database
-from fastApi.data_agent.Nl2SqlPrompts import custom_prompt
+from fastApi.data_agent.prompt import custom_prompt
 from sql_db_search.Nl2SqlPrompts import response_prompt
 
 

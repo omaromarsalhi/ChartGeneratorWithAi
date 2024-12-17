@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ChartType } from '../../chart/apex/apex.model';
 
 import {
-  dashedLineChart
+  linewithDataChart
 } from './data';
 
 @Component({
@@ -14,7 +14,7 @@ export class GeneratedChartComponent implements OnInit {
   // bread crumb items
   breadCrumbItems: Array<{}>;
   
-  dashedLineChart: ChartType;
+  linewithDataChart: ChartType;
 
   
   constructor() { }
@@ -32,7 +32,7 @@ export class GeneratedChartComponent implements OnInit {
    * Fetches the chart data
    */
   private _fetchData() {
-    this.dashedLineChart = dashedLineChart;
+    this.linewithDataChart = linewithDataChart;
   }
 
 

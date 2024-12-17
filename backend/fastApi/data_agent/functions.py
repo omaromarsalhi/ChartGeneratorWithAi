@@ -1,8 +1,10 @@
 from llama_index.core.workflow import Context
+from llama_index.llms.gemini import Gemini
+
 from fastApi.data_agent.Config import Config
 from fastApi.data_agent.Database import Database
 from fastApi.data_agent.Nl2SqlEngine import Nl2SqlEngine
-from fastApi.data_agent.Nl2SqlPrompts import combined_prompt
+from fastApi.data_agent.prompt import formating_prompt
 from fastApi.orchestration.workflow import ProgressEvent
 from sqlalchemy.exc import OperationalError
 
@@ -51,8 +53,30 @@ async def get_data_from_db(ctx: Context, user_query: str):
     nl2sql_engine = await ctx.get("nl2sql_engine")
     query_result = nl2sql_engine.query(query_message)
     await ctx.set("query_result", query_result)
-    return f"Data retrieved from the database {query_result}."
+    return f"Data retrieved successfully from the database."
 
+
+async def format_the_data_according_to_chart(ctx: Context) -> str:
+    """Formats the data according to the chart."""
+    query_result = await ctx.get("query_result")
+    template_name = await ctx.get("template_name")
+    if query_result is None:
+        return "No data found."
+    else:
+        config = await ctx.get("config")
+        llm = Gemini(api_key=config.get('API', 'gemini_key'))
+        formated_prompt = formating_prompt.format(
+            dataset=query_result,
+            chart_example=get_template_example_data_by_name(template_name)
+        )
+        formatted_data = llm.complete(formated_prompt)
+        await ctx.set("formatted_data", formatted_data)
+        return "Data formatted according to the chart and stored in the context."
+
+async def get_formatted_data(ctx: Context) -> str:
+    """retrieves the formatted data from the context."""
+    formatted_data = await ctx.get("formatted_data")
+    return f"This is the formatted data: {formatted_data}"
 
 def create_query_message(user_input: str, chart_name: str) -> str:
     return (
