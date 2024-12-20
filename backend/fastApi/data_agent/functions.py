@@ -14,8 +14,10 @@ from fastApi.utils.utils import get_template_example_data_by_name, create_query_
 async def check_chart_existence(ctx: Context, user_query: str) -> bool:
     """Check if the chart for the user query has been chosen or not."""
     charts_metadata = await ctx.get("charts_metadata",default=[])
-    print("charts_metadata",str(charts_metadata))
     for chart_metadata in charts_metadata:
+        # chat_history = await ctx.get("chat_history")
+        # chat_history = chat_history[-1]
+        # await ctx.set("chat_history", chat_history)
         if semantic_comparison(chart_metadata.user_query, user_query, await ctx.get("config")):
             return True
     return False

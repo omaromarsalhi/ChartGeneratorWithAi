@@ -103,8 +103,12 @@ class ProgressEvent(Event):
 #     "Always start with the Template Agent"
 #     "Here the the agents you can choose from:\n{agent_context_str}\n\n"
 #     "Here is the current user state:\n{user_state_str}\n\n"
+#     "Current Working Agent: {current_agent}\n\n"
 #     "Do not transfer any agent to itself"
 #     "Please assist the user and the agents and transfer them as needed."
+#     "### Critical Rules:\n"
+#     "- Never delegate tasks to agents outside the provided list.\n"
+#     "- Avoid redundant or circular task transfers if it occurs figure out the problem and return the error to the user.\n\n"
 #     "Error Handling: Notify users promptly of any issues, such as connection errors or invalid queries, and provide helpful resolutions."
 # )
 
@@ -121,33 +125,27 @@ class ProgressEvent(Event):
 #     "Based on the user input and the current state, please decide the next step.\n"
 #     "Please assist the user and the agents and transfer them as needed."
 # )
-
 DEFAULT_ORCHESTRATOR_PROMPT = (
-    "You are an orchestration agent responsible for **managing and directing tasks exclusively between agents**.\n\n"
-    "### Your Sole Responsibility:\n"
-    "1. **Agent Selection**: Your task is **only to choose the most appropriate agent** to handle the user's request, based on the current state.\n"
-    "2. **Task Delegation**: **Only transfer tasks to the appropriate agent.** Do not perform any other action or process beyond this.\n"
-    "3. **Avoid Loops**: Ensure that no task is transferred in a circular or redundant way between agents.\n\n"
+    "You are an orchestration agent responsible for selecting and delegating tasks between agents or interacting with the user as needed.\n\n"
     "### Available Agents:\n"
     "{agent_context_str}\n\n"
     "### Current State:\n"
-    "- **User State**: {user_state_str}\n"
-    "- **Current Working Agent**: {current_agent}\n\n"
-    "### Agent Transfer Logic:\n"
-    "1. If an agent is explicitly requested by another agent, **only transfer the task to that agent**, as long as the name is valid ({agent_name}).\n"
-    "2. If no agent is explicitly requested or the provided name does not exist, **choose the most suitable agent** based on the current context.\n"
-    "3. Do not perform any other actions, **your role is limited to choosing between agents**.\n"
-    "4. Never transfer a task back to the **current agent**.\n\n"
+    "- User State: {user_state_str}\n"
+    "- Current Working Agent: {current_agent}\n\n"
     "### Instructions:\n"
-    "1. Analyze the user’s request and the current state to determine the best agent for the task.\n"
-    "2. If no suitable agent can handle the request, do **nothing but indicate to the user that further clarification is needed**.\n"
-    "3. **Do not perform any actions other than transferring the task to the appropriate agent**.\n\n"
-    "### Critical Rules:\n"
-    "- **Your job is to choose only between agents**. **Do not take any other action.**\n"
-    "- **Do not transfer tasks back to the current working agent**.\n"
-    "- Provide the **appropriate agent selection decision** without performing any other tasks.\n\n"
-    "Based on the above, decide which agent is best suited to handle the task or ask for further clarification from the user if necessary."
+    "1. If an agent explicitly requests another agent ({agent_name}), transfer the task to that agent if it exists.\n"
+    "2. If no specific agent is requested or the requested name is invalid, choose the most appropriate agent.\n"
+    "3. Do not transfer tasks back to the current agent.\n"
+    "4. If no agent is suitable or clarification is needed, interact with the user to resolve the query.\n\n"
+    "Always respond with either the chosen agent's name or assist the user as appropriate."
+    "dont allow the FUCKING circulation unless the agent make it work"
 )
+
+
+
+
+
+
 
 DEFAULT_TOOL_REJECT_STR = "The tool call was not approved, likely due to a mistake or preconditions not being met."
 
@@ -227,11 +225,13 @@ class OrchestratorAgent(Workflow):
         )
 
         llm_input = [ChatMessage(role=MessageRole.SYSTEM, content=system_prompt)] + chat_history
-
+        print("llm_input: ",llm_input)
         # inject the request transfer tool into the list of tools
         tools = [get_function_tool(RequestTransfer)] + agent_config.tools
+        print("tools: ",tools.__str__())
         await asyncio.sleep(2)
         response = await llm.achat_with_tools(tools, chat_history=llm_input)
+
 
         tool_calls: list[ToolSelection] = llm.get_tool_calls_from_response(
             response, error_on_no_tool_call=False
@@ -405,6 +405,7 @@ class OrchestratorAgent(Workflow):
         # convert the TransferToAgent pydantic model to a tool
         tools = [get_function_tool(TransferToAgent)]
 
+        print("tools: ", tools.__str__())
         await asyncio.sleep(2)
         response = await llm.achat_with_tools(tools, chat_history=llm_input)
 

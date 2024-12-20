@@ -1,6 +1,8 @@
 import asyncio
 import configparser
 import os
+from itertools import count
+
 from llama_index.core.memory import ChatMemoryBuffer
 
 
@@ -246,7 +248,6 @@ async def main():
     initial_state = get_initial_state()
     agent_configs = [TemplateAgent(),DataAgent()]
     workflow = OrchestratorAgent(timeout=None)
-
     # draw a diagram of the workflow
     # draw_all_possible_flows(workflow, filename="workflow.html")
 
@@ -299,6 +300,10 @@ async def main():
                 memory.put(msg)
 
         user_msg = input("USER >> ")
+        print("count : ",count)
+        if user_msg:
+            memory = ChatMemoryBuffer.from_defaults(llm=llm)
+            print("user written")
         if user_msg.strip().lower() in ["exit", "quit", "bye"]:
             break
 
