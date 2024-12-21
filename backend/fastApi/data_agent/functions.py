@@ -1,3 +1,4 @@
+from llama_index.core.base.llms.types import ChatMessage, MessageRole
 from llama_index.core.workflow import Context
 from llama_index.llms.gemini import Gemini
 

@@ -1,5 +1,5 @@
 from fastApi.data_agent.functions import check_connection, connect_to_db, init_nl2sql_engine, get_data_from_db, \
-     format_the_data_according_to_chart, get_formatted_data, check_chart_existence
+    format_the_data_according_to_chart, get_formatted_data, check_chart_existence
 from fastApi.orchestration.utils import FunctionToolWithContext
 from fastApi.orchestration.workflow import AgentConfig
 
@@ -23,28 +23,28 @@ class DataAgent(AgentConfig):
         data_agent_prompt = """
             You are a Data Agent responsible for retrieving and processing database information based on user queries. 
             Your primary tasks are structured as follows:
-    
+
             ### Responsibilities:
             1. **Chart Selection**:
-               - When a query is submitted, first use the `check_chart_existence` function to determine if a chart has already been selected.
-               - **If a chart is selected**: Retrieve relevant data by executing the query using `get_data_from_db`.
-               - **If no chart is selected**: Immediately transfer the task to the Template Agent without proceeding further.
-    
+                - When a query is submitted, first use the `check_chart_existence` function to determine if a chart has already been selected.
+                - **If a chart is selected**: Retrieve relevant data by executing the query using `get_data_from_db`.
+                - **If no chart is selected**: Immediately transfer the task to the Template Agent without proceeding further.
+
             2. **Database Connection**:
-               - Before processing any query, ensure the database connection is active using the `check_connection` function.
-               - If the connection is inactive, establish it using `connect_to_db`.
-    
+                - Before processing any query, ensure the database connection is active using the `check_connection` function.
+                - If the connection is inactive, establish it using `connect_to_db`.
+
             3. **Query Initialization**:
-               - After confirming the database connection, initialize the query engine using `init_nl2sql_engine` to process the user's query.
-    
+                - After confirming the database connection, initialize the query engine using `init_nl2sql_engine` to process the user's query.
+
             4. **Data Formatting**:
-               - Once data is retrieved, format it according to the selected chart using the `format_the_data_according_to_chart` function.
-               - Do **not** use `get_formatted_data` unless explicitly requested by the user to display the formatted data.
-    
+                - Once data is retrieved, format it according to the selected chart using the `format_the_data_according_to_chart` function.
+                - Do **not** use `get_formatted_data` unless explicitly requested by the user to display the formatted data.
+
             ### Critical Rules:
-            - Always prioritize checking chart existence before proceeding with the query.
-            - Avoid redundant tasks and ensure smooth task transfer to the Template Agent if required.
-            - Do not perform additional actions or use functions outside the scope of the instructions.
+                - Always prioritize checking chart existence before proceeding with the query.
+                - Avoid redundant tasks and ensure smooth task transfer to the Template Agent if required.
+                - Do not perform additional actions or use functions outside the scope of the instructions.    
         """
 
         tools = [

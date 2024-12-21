@@ -7,6 +7,7 @@ from llama_index.core.memory import ChatMemoryBuffer
 
 
 from MyMistralAI import MyMistralAI
+from fastApi.chart_history_agent.ChatHistoryAgent import ChatHistoryAgent
 from fastApi.data_agent.DataAgent import DataAgent
 from fastApi.template_agent.TemplateAgent import TemplateAgent
 
@@ -246,7 +247,7 @@ async def main():
     llm = MyMistralAI()
     memory = ChatMemoryBuffer.from_defaults(llm=llm)
     initial_state = get_initial_state()
-    agent_configs = [TemplateAgent(),DataAgent()]
+    agent_configs = [TemplateAgent(),DataAgent(),ChatHistoryAgent()]
     workflow = OrchestratorAgent(timeout=None)
     # draw a diagram of the workflow
     # draw_all_possible_flows(workflow, filename="workflow.html")
@@ -295,15 +296,14 @@ async def main():
         print(Fore.BLUE + f"AGENT >> {result['response']}" + Style.RESET_ALL)
 
         # update the memory with only the new chat history
-        for i, msg in enumerate(result["chat_history"]):
-            if i >= len(memory.get()):
-                memory.put(msg)
+        memory = ChatMemoryBuffer.from_defaults(llm=llm)
+        for i in result["chat_history"]:
+                memory.put(i)
+        # for i, msg in enumerate(result["chat_history"]):
+        #     if i >= len(memory.get()):
+        #         memory.put(msg)
 
         user_msg = input("USER >> ")
-        print("count : ",count)
-        if user_msg:
-            memory = ChatMemoryBuffer.from_defaults(llm=llm)
-            print("user written")
         if user_msg.strip().lower() in ["exit", "quit", "bye"]:
             break
 

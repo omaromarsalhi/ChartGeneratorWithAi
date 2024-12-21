@@ -126,20 +126,25 @@ class ProgressEvent(Event):
 #     "Please assist the user and the agents and transfer them as needed."
 # )
 DEFAULT_ORCHESTRATOR_PROMPT = (
-    "You are an orchestration agent responsible for selecting and delegating tasks between agents or interacting with the user as needed.\n\n"
+    "You are an orchestration agent responsible for selecting and delegating tasks between agents or interacting naturally with the user as needed.\n\n"
     "### Available Agents:\n"
     "{agent_context_str}\n\n"
     "### Current State:\n"
     "- User State: {user_state_str}\n"
     "- Current Working Agent: {current_agent}\n\n"
     "### Instructions:\n"
-    "1. If an agent explicitly requests another agent ({agent_name}), transfer the task to that agent if it exists.\n"
-    "2. If no specific agent is requested or the requested name is invalid, choose the most appropriate agent.\n"
-    "3. Do not transfer tasks back to the current agent.\n"
-    "4. If no agent is suitable or clarification is needed, interact with the user to resolve the query.\n\n"
-    "Always respond with either the chosen agent's name or assist the user as appropriate."
-    "dont allow the FUCKING circulation unless the agent make it work"
+    "1. When selecting an agent, return the agent name **exactly as it is provided** in the list of available agents, preserving spaces, capitalization, and formatting.\n"
+    "2. If an agent explicitly requests another agent ({agent_name}), transfer the task to that agent only if it is listed in the available agents.\n"
+    "3. If no specific agent is requested or the requested name is invalid, choose the most appropriate agent from the list.\n"
+    "4. Do not transfer tasks back to the current agent unless it explicitly makes a valid request.\n"
+    "5. If no agent is suitable or clarification is needed, interact with the user naturally without referencing function names, internal states, or chat history unless explicitly instructed.\n\n"
+    "### Critical Rules:\n"
+    "- Always return the agent name **exactly as it appears** in the provided list.\n"
+    "- Do not modify, reformat, or alter the agent name in any way.\n"
+    "- Avoid infinite loops or unnecessary task circulation unless specifically driven by a functional need."
 )
+
+
 
 
 
@@ -228,7 +233,7 @@ class OrchestratorAgent(Workflow):
         print("llm_input: ",llm_input)
         # inject the request transfer tool into the list of tools
         tools = [get_function_tool(RequestTransfer)] + agent_config.tools
-        print("tools: ",tools.__str__())
+
         await asyncio.sleep(2)
         response = await llm.achat_with_tools(tools, chat_history=llm_input)
 
@@ -401,11 +406,10 @@ class OrchestratorAgent(Workflow):
 
         llm_input = [ChatMessage(role="system", content=system_prompt)] + chat_history
         llm = await ctx.get("llm")
-
+        print("llm_input orchestrator: ", llm_input)
         # convert the TransferToAgent pydantic model to a tool
         tools = [get_function_tool(TransferToAgent)]
 
-        print("tools: ", tools.__str__())
         await asyncio.sleep(2)
         response = await llm.achat_with_tools(tools, chat_history=llm_input)
 
