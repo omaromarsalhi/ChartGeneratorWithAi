@@ -53,7 +53,6 @@ class TransferToAgent(BaseModel):
 
 class RequestTransfer(BaseModel):
     """Used to signal that either you don't have the tools to complete the task, or you've finished your task and want to transfer to another agent."""
-    agent_name: str
 
 
 # ---- Events used to orchestrate the workflow ----
@@ -134,10 +133,9 @@ DEFAULT_ORCHESTRATOR_PROMPT = (
     "- Current Working Agent: {current_agent}\n\n"
     "### Instructions:\n"
     "1. When selecting an agent, return the agent name **exactly as it is provided** in the list of available agents, preserving spaces, capitalization, and formatting.\n"
-    "2. If an agent explicitly requests another agent ({agent_name}), transfer the task to that agent only if it is listed in the available agents.\n"
-    "3. If no specific agent is requested or the requested name is invalid, choose the most appropriate agent from the list.\n"
-    "4. Do not transfer tasks back to the current agent unless it explicitly makes a valid request.\n"
-    "5. If no agent is suitable or clarification is needed, interact with the user naturally without referencing function names, internal states, or chat history unless explicitly instructed.\n\n"
+    "2. If no specific agent is requested or the requested name is invalid, choose the most appropriate agent from the list.\n"
+    "3. Do not transfer tasks back to the current agent unless it explicitly makes a valid request.\n"
+    "4. If no agent is suitable or clarification is needed, interact with the user naturally without referencing function names, internal states, or chat history unless explicitly instructed.\n\n"
     "### Critical Rules:\n"
     "- Always return the agent name **exactly as it appears** in the provided list.\n"
     "- Do not modify, reformat, or alter the agent name in any way.\n"
@@ -263,7 +261,7 @@ class OrchestratorAgent(Workflow):
                 ctx.write_event_to_stream(
                     ProgressEvent(msg="Agent is requesting a transfer. Please hold.")
                 )
-                return OrchestratorEvent(agent_name=tool_call.tool_kwargs["agent_name"])
+                return OrchestratorEvent()
 
             elif tool_call.tool_name in agent_config.tools_requiring_human_confirmation:
                 ctx.write_event_to_stream(
@@ -397,7 +395,7 @@ class OrchestratorAgent(Workflow):
         current_agent_name= await ctx.get("active_agent",default="None")
         print("current_agent_name: ", current_agent_name)
         system_prompt = self.orchestrator_prompt.format(
-            agent_context_str=agent_context_str,user_state_str=user_state_str,current_agent=current_agent_name,agent_name=ev.agent_name
+            agent_context_str=agent_context_str,user_state_str=user_state_str,current_agent=current_agent_name
         )
 
         # system_prompt = self.orchestrator_prompt.format(
