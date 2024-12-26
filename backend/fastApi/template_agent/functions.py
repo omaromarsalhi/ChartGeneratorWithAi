@@ -1,7 +1,5 @@
 from llama_index.core.workflow import Context
 
-from fastApi.data_agent.ChartMetaData import ChartMetaData
-
 from fastApi.templates.ChartsDescriptions import (
     lineWithDataChart,
     basicRadialBarChart,
@@ -14,7 +12,7 @@ from fastApi.templates.ChartsDescriptions import (
     dashedLineChart,
     columnLabelChart
 )
-from fastApi.utils.utils import semantic_comparison, clean_chat_history
+from fastApi.utils.utils import clean_chat_history
 
 
 async def save_the_chosen_template(ctx: Context, template_name: str) -> str:
