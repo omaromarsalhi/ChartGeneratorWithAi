@@ -255,9 +255,9 @@ class OrchestratorAgent(Workflow):
             raise ValueError(
                 "User message, agent configs, llm, and chat_history are required!"
             )
-        # if not llm.metadata.is_function_calling_model:
-        #     print(llm.metadata)
-        #     raise ValueError("LLM must be a function calling model!")
+        if not llm.metadata.is_function_calling_model:
+            print(llm.metadata)
+            raise ValueError("LLM must be a function calling model!")
 
         # store the agent configs in the context
         agent_configs_dict = {ac.name: ac for ac in agent_configs}
