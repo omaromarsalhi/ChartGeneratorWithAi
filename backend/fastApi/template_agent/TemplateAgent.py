@@ -40,6 +40,7 @@ class TemplateAgent(AgentConfig):
             5. **Task Delegation**:
                - Use `RequestTransfer` to delegate tasks beyond your scope.
                - Avoid requesting input from the user or referencing internal states.
+               
         """
 
         tools = [

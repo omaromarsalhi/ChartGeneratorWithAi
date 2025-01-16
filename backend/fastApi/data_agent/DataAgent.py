@@ -50,6 +50,8 @@ class DataAgent(AgentConfig):
             6. **Task Delegation**:
                - Use `RequestTransfer` to escalate tasks beyond your scope.
                - Avoid seeking user input unless explicitly required after `format_the_data_according_to_chart`.
+               
+
         """
 
         tools = [

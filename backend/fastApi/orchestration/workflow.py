@@ -4,6 +4,8 @@ import os
 from typing import Any
 
 from llama_index.core.base.llms.types import MessageRole
+from llama_index.llms.cohere import Cohere
+from llama_index.llms.gemini import Gemini
 from pydantic import BaseModel, ConfigDict, Field
 
 from llama_index.core.llms import ChatMessage, LLM
@@ -28,6 +30,7 @@ from fastApi.orchestration.utils import FunctionToolWithContext
 
 config = configparser.ConfigParser()
 config.read("../../config.ini")
+# os.environ["GOOGLE_API_KEY"] = config.get('API', 'gemini_key')
 os.environ["MISTRAL_API_KEY"] = config.get('API', 'mistral_key')
 
 
@@ -142,60 +145,77 @@ class ProgressEvent(Event):
 #     "- Avoid infinite loops or unnecessary task circulation unless specifically driven by a functional need."
 # )
 
+DEFAULT_ORCHESTRATOR_PROMPT = (
+    "You are the Orchestrator Agent responsible for managing user requests and coordinating with system agents.\n"
+    "Your job is to:\n"
+    "- Manage and delegate tasks efficiently by choosing the appropriate agent.\n"
+    "- Ensure smooth interaction between system agents and the user.\n\n"
 
-DEFAULT_ORCHESTRATOR_PROMPT = """
-DO NOT USE ANY FUCKING FUNCTION NAME YOU MOTHER FUCKER
+    "### Available Agents:\n"
+    "{agent_context_str}\n\n"
 
-You are an Orchestrator Agent responsible for coordinating tasks between agents and ensuring a seamless workflow.
+    "### Current State:\n"
+    "- User State: {user_state_str}\n"
+    "- Current Working Agent: {current_agent}\n\n"
 
-### Available Agents:
-{agent_context_str}
+    "### Rules:\n"
+    "- Do not delegate tasks to agents outside the provided list.\n"
+    "- Avoid redundant or circular transfers.\n"
+    "- Inform users of any errors (e.g., invalid queries or connection issues) and provide helpful solutions.\n"
+    "- Always call the Chat History Agent first when the user submits a **new query** that requests a new workflow. \n"
+    "  - Wait for the Chat History Agent to save the query and then proceed to answer the user query by delegating it to the relevant agents as needed.\n\n"
 
-### Current State:
-- User State: {user_state_str}
-- Current Working Agent: {current_agent}
+    "### Guidelines:\n"
+    "1. Handle simple requests directly if possible.\n"
+    "2. Delegate data-related requests to the Data Agent and template-related tasks to the Template Agent.\n"
+    "3. If no solution exists, explain the limitation to the user clearly.\n\n"
 
-### Instructions:
-1. **Query Workflow**:
-   - When a user submits a query:
-     - Ask the Chat History Agent to check for existing metadata using `retrieve_chat_history`.
-     - If **history exists**:
-       - Proceed with the current conversation using the existing data.
-     - If **no history exists**:
-       - Directly proceed with the new query without saving or cleaning anything.
-       - Delegate tasks to the **Template Agent** for chart selection and the **Data Agent** for data retrieval and formatting.
-       - No saving or cleaning of chat history is required.
+    "Your goal is to ensure efficient and seamless coordination among system agents to fulfill user requests."
+)
 
-2. **New Topic Detection**:
-   - If the user asks a new question or a new topic is detected:
-     - If **history exists**:
-       - First, save the current chat history using `save_chat_history`.
-       - Then, clean the old chat history using `clean_chat_history`.
-       - Proceed with handling the new query.
-     - If no history exists, just proceed with the new query directly.
-
-3. **Agent Selection**:
-   - Choose the most suitable agent based on the task requirements.
-   - Return the agent name **exactly as it appears** in the list.
-
-4. **Collaboration and Escalation**:
-   - Ensure agents share metadata and collaborate effectively.
-   - Handle escalations or out-of-scope tasks via `RequestTransfer`.
-
-5. **Critical Rules**:
-   - Do not modify agent names or reformat them.
-   - Avoid infinite loops or unnecessary task circulation.
-   - Interact naturally with the user when clarification is needed but avoid referencing internal states or function names.
-"""
-
-
-
-
-
-
-
-
-
+# DEFAULT_ORCHESTRATOR_PROMPT = """
+#
+# You are an Orchestrator Agent responsible for coordinating tasks between agents and ensuring a seamless workflow.
+#
+# ### Available Agents:
+# {agent_context_str}
+#
+# ### Current State:
+# - User State: {user_state_str}
+# - Current Working Agent: {current_agent}
+#
+# ### Instructions:
+# 1. **Query Workflow**:
+#    - When a user submits a query:
+#      - Ask the Chat History Agent to check for existing metadata using `retrieve_chat_history`.
+#      - If **history exists**:
+#        - Proceed with the current conversation using the existing data.
+#      - If **no history exists**:
+#        - Directly proceed with the new query without saving or cleaning anything.
+#        - Delegate tasks to the **Template Agent** for chart selection and the **Data Agent** for data retrieval and formatting.
+#        - No saving or cleaning of chat history is required.
+#
+# 2. **New Topic Detection**:
+#    - If the user asks a new question or a new topic is detected:
+#      - If **history exists**:
+#        - First, save the current chat history using `save_chat_history`.
+#        - Then, clean the old chat history using `clean_chat_history`.
+#        - Proceed with handling the new query.
+#      - If no history exists, just proceed with the new query directly.
+#
+# 3. **Agent Selection**:
+#    - Choose the most suitable agent based on the task requirements.
+#    - Return the agent name **exactly as it appears** in the list.
+#
+# 4. **Collaboration and Escalation**:
+#    - Ensure agents share metadata and collaborate effectively.
+#    - Handle escalations or out-of-scope tasks via `RequestTransfer`.
+#
+# 5. **Critical Rules**:
+#    - Do not modify agent names or reformat them.
+#    - Avoid infinite loops or unnecessary task circulation.
+#    - Interact naturally with the user when clarification is needed but avoid referencing internal states or function names.
+# """
 
 DEFAULT_TOOL_REJECT_STR = "The tool call was not approved, likely due to a mistake or preconditions not being met."
 
@@ -222,6 +242,7 @@ class OrchestratorAgent(Workflow):
         user_msg = ev.get("user_msg")
         agent_configs = ev.get("agent_configs", default=[])
         llm: LLM = ev.get("llm", default=MyMistralAI())
+        # llm: LLM = ev.get("llm", default=Gemini(model_name="models/gemini-2.0-flash-exp"))
 
         chat_history = ev.get("chat_history", default=[])
         initial_state = ev.get("initial_state", default={})
@@ -275,20 +296,19 @@ class OrchestratorAgent(Workflow):
         )
 
         llm_input = [ChatMessage(role=MessageRole.SYSTEM, content=system_prompt)] + chat_history
-        print("llm_input: ",llm_input)
+        print("llm_input: ", llm_input)
         # inject the request transfer tool into the list of tools
         tools = [get_function_tool(RequestTransfer)] + agent_config.tools
 
         await asyncio.sleep(2)
         response = await llm.achat_with_tools(tools, chat_history=llm_input)
 
-
         tool_calls: list[ToolSelection] = llm.get_tool_calls_from_response(
             response, error_on_no_tool_call=False
         )
-        print("number of tools: ",len(tool_calls))
+        print("number of tools: ", len(tool_calls))
         for tool_call in tool_calls:
-            print("chosen tool by th agent",tool_call)
+            print("chosen tool by th agent", tool_call)
 
         if len(tool_calls) == 0:
             chat_history.append(response.message)
@@ -439,10 +459,10 @@ class OrchestratorAgent(Workflow):
         user_state = await ctx.get("user_state")
         user_state_str = "\n".join([f"{k}: {v}" for k, v in user_state.items()])
 
-        current_agent_name= await ctx.get("active_agent",default="None")
+        current_agent_name = await ctx.get("active_agent", default="None")
         print("current_agent_name: ", current_agent_name)
         system_prompt = self.orchestrator_prompt.format(
-            agent_context_str=agent_context_str,user_state_str=user_state_str,current_agent=current_agent_name
+            agent_context_str=agent_context_str, user_state_str=user_state_str, current_agent=current_agent_name
         )
 
         # system_prompt = self.orchestrator_prompt.format(

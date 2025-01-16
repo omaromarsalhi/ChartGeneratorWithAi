@@ -25,7 +25,6 @@ os.environ["MISTRAL_API_KEY"] = config.get('API', 'mistral_key')
 def get_initial_state() -> dict:
     return {
         "username": "omar salhi",
-        "password": "qsdfsdf",
     }
 
 
